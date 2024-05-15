@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState, useCallback } from "react";
+import axios from "axios";
 
 type NFTItem = {
   id: string;
@@ -11,30 +11,40 @@ type NFTItem = {
 const NFTGallery: React.FC = () => {
   const [nfts, setNfts] = useState<NFTItem[]>([]);
   const [selectedNft, setSelectedNft] = useState<NFTItem | null>(null);
+  
+  const cache: any = {};
 
-  const fetchNFTs = async () => {
-    const response = await axios.get('https://example.com/api/nfts', {
+  const fetchNFTs = useCallback(async () => {
+    const url = "https://example.com/api/nfts";
+    if (cache[url]) {
+      console.log("Fetching from cache");
+      setNfts(cache[url]);
+      return;
+    }
+
+    const response = await axios.get(url, {
       headers: {
-        'Authorization': `Bearer ${process.env.REACT_APP_API_KEY}`,
+        Authorization: `Bearer ${process.env.REACT_APP_API_KEY}`,
       },
     });
+    cache[url] = response.data;
     setNfts(response.data);
-  };
+  }, []);
 
   useEffect(() => {
     fetchNFTs();
-  }, []);
+  }, [fetchNFTs]);
 
   const handleNftClick = (nft: NFTItem) => {
     setSelectedNft(nft);
   };
 
   const handleBuy = () => {
-    console.log('Buying', selectedNft?.name);
+    console.log("Buying", selectedNft?.name);
   };
 
   const handleSell = () => {
-    console.log('Selling', selectedNft?.name);
+    console.log("Selling", selectedNft?.name);
   };
 
   return (
