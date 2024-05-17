@@ -48,27 +48,31 @@ const useNFTBlockchain = () => {
     }
   };
 
-  const fetchNFTData = async (tokenId: number) => {
-    if (!contract) return;
+  const fetchMultipleTokenURIs = async (tokenIds: number[]) => {
+    if (!web3 || !contract) return;
+
+    const batch = new web3.BatchRequest();
+    const tokenURIPromises = tokenIds.map(tokenId => {
+      return new Promise((resolve, reject) => {
+        const request = contract.methods.tokenURI(tokenId).call.request({}, (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        });
+        batch.add(request);
+      });
+    });
+
+    batch.execute();
+
     try {
-      const tokenURI = await contract.methods.tokenURI(tokenId).call();
-      return tokenURI;
+      const results = await Promise.all(tokenURIPromises);
+      return results;
     } catch (error) {
-      console.error('Error fetching NFT data:', error);
+      console.error('Error fetching multiple token URIs:', error);
     }
   };
 
-  const transferNFT = async (to: string, tokenId: number) => {
-    if (!contract || !account) return;
-    try {
-      const response = await contract.methods.safeTransferFrom(account, to, tokenId).send({ from: account });
-      return response;
-    } catch (error) {
-      console.error('Error transferring NFT:', error);
-    }
-  };
-
-  return { mintNFT, fetchNFTData, transferNFT };
+  return { mintNFT, fetchNFTData, transferNFT, fetchMultipleTokenURIs };
 };
 
 export default useNFTBlockchain;
