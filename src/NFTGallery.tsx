@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
-type NFTItem = {
+type NFT = {
   id: string;
   name: string;
   image: string;
@@ -9,62 +9,62 @@ type NFTItem = {
 };
 
 const NFTGallery: React.FC = () => {
-  const [nfts, setNfts] = useState<NFTItem[]>([]);
-  const [selectedNft, setSelectedNft] = useState<NFTItem | null>(null);
+  const [nftCollection, setNftCollection] = useState<NFT[]>([]);
+  const [activeNFT, setActiveNFT] = useState<NFT | null>(null);
   
-  const cache: any = {};
+  const nftCache: { [url: string]: NFT[] } = {};
 
-  const fetchNFTs = useCallback(async () => {
-    const url = "https://example.com/api/nfts";
-    if (cache[url]) {
-      console.log("Fetching from cache");
-      setNfts(cache[url]);
+  const fetchNFTCollection = useCallback(async () => {
+    const apiUrl = "https://example.com/api/nfts";
+    if (nftCache[apiUrl]) {
+      console.log("Loading from cache");
+      setNftCollection(nftCache[apiUrl]);
       return;
     }
 
-    const response = await axios.get(url, {
+    const response = await axios.get(apiUrl, {
       headers: {
         Authorization: `Bearer ${process.env.REACT_APP_API_KEY}`,
       },
     });
-    cache[url] = response.data;
-    setNfts(response.data);
+    nftCache[apiUrl] = response.data;
+    setNftCollection(response.data);
   }, []);
 
   useEffect(() => {
-    fetchNFTs();
-  }, [fetchNFTs]);
+    fetchNFTCollection();
+  }, [fetchNFTCollection]);
 
-  const handleNftClick = (nft: NFTItem) => {
-    setSelectedNft(nft);
+  const onNFTClick = (nft: NFT) => {
+    setActiveNFT(nft);
   };
 
-  const handleBuy = () => {
-    console.log("Buying", selectedNft?.name);
+  const buySelectedNFT = () => {
+    console.log("Buying", activeNFT?.name);
   };
 
-  const handleSell = () => {
-    console.log("Selling", selectedNft?.name);
+  const sellSelectedNFT = () => {
+    console.log("Selling", activeNFT?.name);
   };
 
   return (
     <div>
       <h2>NFT Gallery</h2>
       <div className="nft-gallery">
-        {nfts.map((nft) => (
-          <div key={nft.id} className="nft-item" onClick={() => handleNftClick(nft)}>
+        {nftCollection.map((nft) => (
+          <div key={nft.id} className="nft-item" onClick={() => onNFTClick(nft)}>
             <img src={nft.image} alt={nft.name} />
             <h4>{nft.name}</h4>
           </div>
         ))}
       </div>
-      {selectedNft && (
+      {activeNFT && (
         <div className="nft-details">
-          <h3>{selectedNft.name}</h3>
-          <p>{selectedNft.description}</p>
-          <img src={selectedNft.image} alt={selectedNft.name} />
-          <button onClick={handleBuy}>Buy</button>
-          <button onClick={handleSell}>Sell</button>
+          <h3>{activeNFT.name}</h3>
+          <p>{activeNFT.description}</p>
+          <img src={activeNFT.image} alt={activeNFT.name} />
+          <button onClick={buySelectedNFT}>Buy</button>
+          <button onClick={sellSelectedNFT}>Sell</button>
         </div>
       )}
     </div>
