@@ -6,33 +6,33 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract MyNFT is ERC721URIStorage {
     using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+    Counters.Counter private _totalMintedTokens;
 
     constructor() ERC721("MyNFT", "MNFT") {}
 
-    function mintNFT(address recipient, string memory tokenURI) public returns (uint256) {
+    function mintToken(address recipient, string memory metadataURI) public returns (uint256) {
         require(recipient != address(0), "MyNFT: mint to the zero address");
         
-        _tokenIds.increment();
+        _totalMintedTokens.increment();
         
-        uint256 newItemId = _tokenIds.current();
+        uint256 newTokenId = _totalMintedTokens.current();
         
-        _mint(recipient, newItemId);
+        _mint(recipient, newTokenId);
         
-        _setTokenURI(newItemId, tokenURI);
+        _setTokenURI(newTokenId, metadataURI);
         
-        return newItemId;
+        return newTokenId;
     }
 
-    function transferNFT(address from, address to, uint256 tokenId) public {
-        require(to != address(0), "MyNFT: transfer to the zero address");
+    function transferToken(address sender, address receiver, uint256 tokenId) public {
+        require(receiver != address(0), "MyNFT: transfer to the zero address");
         
         require(_isApprovedOrOwner(_msgSender(), tokenId), "MyNFT: caller is not owner nor approved");
         
-        _transfer(from, to, tokenId);
+        _transfer(sender, receiver, tokenId);
     }
 
-    function getTokenDetails(uint256 tokenId) public view returns (string memory) {
+    function fetchTokenMetadata(uint256 tokenId) public view returns (string memory) {
         require(_exists(tokenId), "MyNFT: query for nonexistent token");
         
         return tokenURI(tokenId);
