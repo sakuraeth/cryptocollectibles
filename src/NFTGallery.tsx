@@ -6,30 +6,37 @@ type NFT = {
   name: string;
   image: string;
   description: string;
+  isFavorite?: boolean; 
 };
 
 const NFTGallery: React.FC = () => {
   const [nftCollection, setNftCollection] = useState<NFT[]>([]);
   const [activeNFT, setActiveNFT] = useState<NFT | null>(null);
-  
-  const nftCache: { [url: string]: NFT[] } = {};
+  const [nftCache, setNftCache] = useState<{ [url: string]: NFT[] }>({}); 
+
+  const apiUrl = process.env.REACT_APP_API_URL || "https://example.com/api/nfts"; 
 
   const fetchNFTCollection = useCallback(async () => {
-    const apiUrl = "https://example.com/api/nfts";
     if (nftCache[apiUrl]) {
       console.log("Loading from cache");
       setNftCollection(nftCache[apiUrl]);
       return;
     }
 
-    const response = await axios.get(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${process.env.REACT_APP_API_KEY}`,
-      },
-    });
-    nftCache[apiUrl] = response.data;
-    setNftCollection(response.data);
-  }, []);
+    try {
+      const response = await axios.get(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${process.env.REACT_APP_API_KEY}`,
+        },
+      });
+      const nfts = response.data.map((nft: NFT) => ({ ...nft, isFavorite: false })); 
+      const updatedCache = { ...nftCache, [apiUrl]: nfts };
+      setNftCache(updatedCache);
+      setNftCollection(nfts);
+    } catch (error) {
+      console.error("Failed to fetch NFTs:", error);
+    }
+  }, [apiUrl, nftCache]);
 
   useEffect(() => {
     fetchNFTCollection();
@@ -47,6 +54,18 @@ const NFTGallery: React.FC = () => {
     console.log("Selling", activeNFT?.name);
   };
 
+  
+  const toggleFavorite = (id: string) => {
+    const updatedCollection = nftCollection.map((nft) =>
+      nft.id === id ? { ...nft, isFavorite: !nft.isFavorite } : nft
+    );
+    setNftCollection(updatedCollection);
+
+    
+    const updatedCache = { ...nftCache, [apiUrl]: updatedCollection };
+    setNftCache(updatedCache);
+  };
+
   return (
     <div>
       <h2>NFT Gallery</h2>
@@ -55,6 +74,12 @@ const NFTGallery: React.FC = () => {
           <div key={nft.id} className="nft-item" onClick={() => onNFTClick(nft)}>
             <img src={nft.image} alt={nft.name} />
             <h4>{nft.name}</h4>
+            <button onClick={(e) => {
+                  e.stopPropagation(); 
+                  toggleFavorite(nft.id);
+                }}>
+              {nft.isFavorite ? "Unfavorite" : "Favorite"}
+            </button>
           </div>
         ))}
       </div>
