@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Web3 from 'web3';
 import { AbiItem } from 'web3-utils';
 import ERC721ABI from './ERC721ABI.json';
@@ -10,6 +10,7 @@ const useNFTBlockchain = () => {
   const [web3, setWeb3] = useState<Web3>();
   const [contract, setContract] = useState<any>();
   const [account, setAccount] = useState<string>('');
+  const [tokenURICache, setTokenURICache] = useState<{ [key: number]: any }>({});
 
   useEffect(() => {
     const initWeb3 = async () => {
@@ -51,12 +52,21 @@ const useNFTBlockchain = () => {
   const fetchMultipleTokenURIs = async (tokenIds: number[]) => {
     if (!web3 || !contract) return;
 
+    const uncachedTokenIds = tokenIds.filter(id => !tokenURICache[id]);
+
+    if (uncachedTokenIds.length === 0) {
+      return tokenIds.map(id => tokenURICache[id]);
+    }
+
     const batch = new web3.BatchRequest();
-    const tokenURIPromises = tokenIds.map(tokenId => {
+    const tokenURIPromises = uncachedTokenIds.map(tokenId => {
       return new Promise((resolve, reject) => {
         const request = contract.methods.tokenURI(tokenId).call.request({}, (error, result) => {
           if (error) reject(error);
-          else resolve(result);
+          else {
+            setTokenURICache(prevCache => ({ ...prevCache, [tokenId]: result }));
+            resolve(result);
+          }
         });
         batch.add(request);
       });
@@ -65,14 +75,30 @@ const useNFTBlockchain = () => {
     batch.execute();
 
     try {
-      const results = await Promise.all(tokenURIPromises);
-      return results;
+      await Promise.all(tokenURIPromises);
+      // Return combined results from cache and fresh fetch
+      return tokenIds.map(id => tokenURICache[id]);
     } catch (error) {
       console.error('Error fetching multiple token URIs:', error);
     }
   };
 
-  return { mintNFT, fetchNFTData, transferNFT, fetchMultipleTokenURIs };
+  const fetchNFTData = async () => {
+    // Placeholder - Implement as needed
+  };
+
+  const transferNFT = async () => {
+    // Placeholder - Implement as needed
+  };
+
+  const memoizedValues = useMemo(() => ({
+    mintNFT,
+    fetchNFTData,
+    transferNFT,
+    fetchMultipleTokenURIs
+  }), [contract, account, tokenURICache]);
+
+  return memoizedValues;
 };
 
 export default useNFTBlockchain;
