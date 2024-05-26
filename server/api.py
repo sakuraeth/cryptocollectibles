@@ -13,29 +13,29 @@ load_dotenv()
 WEB3_PROVIDER_URI = os.getenv('WEB3_PROVIDER_URI')
 CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS')
 PRIVATE_KEY = os.getenv('PRIVATE_KEY')
-ACCOUNT_ADDRESS = os.getenv('ACCOUNT_ADDRESS')
-ABI_PATH = os.getenv('ABI_PATH')
+WALLET_ADDRESS = os.getenv('ACCOUNT_ADDRESS')
+ABI_FILE_PATH = os.getenv('ABI_PATH')
 
 web3 = Web3(HTTPProvider(WEB3_PROVIDER_URI))
 web3.middleware_onion.inject(geth_poa_middleware, layer=0)
 web3.eth.setGasPriceStrategy(medium_gas_price_strategy)
 
-with open(ABI_PATH, 'r') as file:
-    contract_abi = json.load(file)
+with open(ABI_FILE_PATH, 'r') as abi_file:
+    contract_abi = json.load(abi_file)
 
-contract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
+contract_instance = web3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
-def batch_fetch_nft_data(token_ids):
-    batch = []
+def fetch_nft_data_in_batches(token_ids):
+    call_batch = []
     for token_id in token_ids:
-        batch.append(contract.functions.tokenURI(token_id))
-        batch.append(contract.functions.ownerOf(token_id))
+        call_batch.append(contract_instance.functions.tokenURI(token_id))
+        call_batch.append(contract_instance.functions.ownerOf(token_id))
     
-    results = web3.provider.make_batch_request(batch)
-    data = []
+    results = web3.provider.make_batch_request(call_batch)
+    nft_data_list = []
     for i in range(0, len(results), 2):
         token_uri = results[i]
-        owner = results[i+1]
-        logging.info(f'Fetched NFT Data for Token ID {token_ids[i//2]}: Token URI - {token_uri}, Owner - {owner}')
-        data.append({'token_id': token_ids[i//2], 'token_uri': token_uri, 'owner': owner})
-    return data
+        owner_address = results[i + 1]
+        logging.info(f'Fetched NFT Data for Token ID {token_ids[i // 2]}: Token URI - {token_uri}, Owner - {owner_address}')
+        nft_data_list.append({'token_id': token_ids[i // 2], 'token_uri': token_uri, 'owner': owner_address})
+    return nft_data_list
