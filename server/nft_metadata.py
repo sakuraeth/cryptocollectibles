@@ -3,51 +3,44 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 
-load_dotenv()   # Load environment variables
+load_dotenv()
 
-# Flask app initialization
 app = Flask(__name__)
 
-# Assuming metadata is stored in a JSON file for simplicity
-METADATA_FILE = os.getenv('METADATA_FILE', 'metadata.json')
+METADATA_FILE_PATH = os.getenv('METADATA_FILE', 'metadata.json')
 
-def load_metadata():
-    """Load NFT metadata from the file."""
+def read_nft_metadata_from_file():
     try:
-        with open(METADATA_FILE, 'r') as file:
+        with open(METADATA_FILE_PATH, 'r') as file:
             return json.load(file)
     except FileNotFoundError:
         return {}
 
-def save_metadata(metadata):
-    """Save NFT metadata to the file."""
-    with open(METADATA_FILE, 'w') as file:
+def write_nft_metadata_to_file(metadata):
+    with open(METADATA_FILE_PATH, 'w') as file:
         json.dump(metadata, file, indent=4)
 
 @app.route('/metadata', methods=['GET'])
-def get_metadata():
-    """Retrieve all NFT metadata."""
-    metadata = load_metadata()
+def retrieve_all_metadata():
+    metadata = read_nft_metadata_from_file()
     return jsonify(metadata)
 
 @app.route('/metadata/<string:nft_id>', methods=['GET'])
-def get_single_metadata(nft_id):
-    """Retrieve metadata for a single NFT based on its ID."""
-    metadata = load_metadata()
+def retrieve_metadata_by_id(nft_id):
+    metadata = read_nft_metadata_from_file()
     return jsonify(metadata.get(nft_id, {}))
 
 @app.route('/metadata', methods=['POST'])
-def add_metadata():
-    """Add or update metadata for an NFT."""
-    new_metadata = request.json
-    if not new_metadata.get('id'):
+def add_or_update_metadata():
+    incoming_metadata = request.json
+    if not incoming_metadata.get('id'):
         return jsonify({'error': 'Missing NFT ID'}), 400
     
-    metadata = load_metadata()
-    metadata[new_metadata['id']] = new_metadata
-    save_metadata(metadata)
+    all_metadata = read_nft_metadata_from_file()
+    all_metadata[incoming_metadata['id']] = incoming_metadata
+    write_nft_metadata_to_file(all_metadata)
     
-    return jsonify({'message': 'Metadata added/updated successfully'}), 200
+    return jsonify({'message': 'NFT metadata added/updated successfully'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
