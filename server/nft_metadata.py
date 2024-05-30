@@ -35,12 +35,22 @@ def add_or_update_metadata():
     incoming_metadata = request.json
     if not incoming_metadata.get('id'):
         return jsonify({'error': 'Missing NFT ID'}), 400
-    
+
     all_metadata = read_nft_metadata_from_file()
     all_metadata[incoming_metadata['id']] = incoming_metadata
     write_nft_metadata_to_file(all_metadata)
-    
+
     return jsonify({'message': 'NFT metadata added/updated successfully'}), 200
+
+@app.route('/metadata/<string:nft_id>', methods=['DELETE'])
+def delete_metadata(nft_id):
+    all_metadata = read_nft_metadata_from_file()
+    if nft_id in all_metadata:
+        del all_metadata[nft_id]
+        write_nft_metadata_to_file(all_metadata)
+        return jsonify({'message': f'NFT metadata for ID {nft_id} deleted successfully'}), 200
+    else:
+        return jsonify({'error': 'NFT ID not found'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
